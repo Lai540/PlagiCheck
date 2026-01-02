@@ -12,7 +12,7 @@ from typing import List, Dict, Any
 import zlib
 import time
 import difflib
-from duckduckgo_search import DDGS
+#from duckduckgo_search import DDGS
 
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
@@ -79,6 +79,40 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # --- Engines ---
+import requests
+from bs4 import BeautifulSoup
+import random
+
+def search_web(self, query, lang='en'):
+    """Pure Python web search (scraping DuckDuckGo)."""
+    try:
+        ua = random.choice(self.user_agents)
+        headers = {"User-Agent": ua}
+
+        if lang == 'zh':
+            query += " lang:zh"
+
+        url = f"https://html.duckduckgo.com/html/?q={requests.utils.quote(query)}"
+        resp = requests.get(url, headers=headers, timeout=6)
+        if resp.status_code != 200:
+            return None
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+        results = []
+        for a in soup.find_all("a", {"class": "result__a"}, limit=8):
+            href = a.get("href")
+            title = a.get_text(strip=True)
+            if href and title:
+                bad_domains = [".cn", ".ru", ".tk", ".ml", ".ga", ".cf", "csdn", "zhihu", "blogspot", "wordpress"]
+                if any(bad in href.lower() for bad in bad_domains):
+                    continue
+                results.append({"title": title, "url": href})
+
+        return results[0] if results else None
+
+    except Exception as e:
+        print(f"Web search error: {e}")
+        return None
 
 class PlagiarismEngine:
     def __init__(self):
