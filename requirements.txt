@@ -18,7 +18,7 @@ cssselect2==0.8.0
 defusedxml==0.7.1
 Django==5.0.6
 dnspython==2.8.0
-duckduckgo-search==2.6.0
+duckduckgo-search==2.5.0
 ecdsa==0.19.1
 email_validator==2.2.0
 et_xmlfile==2.0.0
