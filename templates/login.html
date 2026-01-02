@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In | PlagiCheck AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="auth-wrapper">
+    <div class="auth-card">
+        <div class="logo-box">P</div>
+        <h2 style="font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem; text-align: center;">Welcome Back
+        </h2>
+        <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">Sign in to your
+            lab to continue analysis.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" style="padding: 0.75rem; font-size: 0.8rem; margin-bottom: 1.5rem;">{{
+            message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('login') }}" method="POST">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Enter your username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Sign In to Dashboard</button>
+        </form>
+
+        <div style="margin-top: 2rem; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+            Don't have an account? <a href="{{ url_for('register') }}"
+                style="color: var(--primary); font-weight: 700; text-decoration: none;">Create one free</a>
+        </div>
+    </div>
+</body>
+
+</html>
+<div class="disclaimer" style="margin-top: 2rem;">
+    PlagiCheck AI is an independent plagiarism detection system and is not affiliated with Turnitin.
+</div>
+</div>
+
+</html>

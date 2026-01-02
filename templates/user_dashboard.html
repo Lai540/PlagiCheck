@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | PlagiCheck AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-brand">
+            <div class="logo-box"
+                style="width: 2.2rem; height: 2.2rem; font-size: 1.25rem; border-radius: 0.6rem; margin: 0;">P</div>
+            <span>PlagiCheck AI</span>
+        </div>
+        <div class="header-user">
+            <span class="user-tag">Hi, {{ current_user.username }}</span>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline btn-sm">Sign Out</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Hero Section for Upload -->
+        <div class="card"
+            style="margin-bottom: 3rem; background: linear-gradient(135deg, white 0%, #f1f5f9 100%); padding: 3rem; border: none; overflow: hidden; position: relative;">
+            <div
+                style="position: absolute; top: -100px; right: -100px; width: 300px; height: 300px; background: var(--primary-glow); border-radius: 50%; filter: blur(80px); opacity: 0.1;">
+            </div>
+
+            <div style="position: relative; z-index: 1;">
+                <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -0.02em;">New
+                    Analysis</h1>
+                <p style="color: var(--text-muted); margin-bottom: 2rem; max-width: 600px;">Upload your academic papers,
+                    reports, or essays — or paste text directly. Our ensemble AI engine will check for both plagiarism
+                    and AI markers with
+                    Turnitin-level precision.</p>
+
+                <!-- Tabbed Input Interface -->
+                <div class="input-tabs" style="margin-bottom: 1.5rem;">
+                    <button type="button" class="tab-btn active" data-tab="file"
+                        style="padding: 0.75rem 1.5rem; border: none; background: var(--primary); color: white; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 700; cursor: pointer; margin-right: 0.5rem;">📁
+                        Upload File</button>
+                    <button type="button" class="tab-btn" data-tab="text"
+                        style="padding: 0.75rem 1.5rem; border: 1px solid var(--border); background: white; color: var(--text-muted); border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 700; cursor: pointer;">✍️
+                        Paste Text</button>
+                </div>
+
+                <!-- File Upload Tab -->
+                <form action="{{ url_for('upload') }}" method="POST" enctype="multipart/form-data" id="file-form"
+                    class="input-panel active" style="display: flex; gap: 1rem; align-items: center;">
+                    <label for="file-upload" class="btn btn-outline" id="file-label"
+                        style="margin: 0; padding: 1rem 2rem; border-radius: var(--radius-md); font-weight: 700;">
+                        <span style="font-size: 1.2rem;">📁</span> Choose Document
+                    </label>
+                    <input type="file" name="file" id="file-upload" hidden accept=".pdf,.docx,.doc,.pptx,.ppt,.txt">
+                    <button type="submit" class="btn btn-primary"
+                        style="padding: 1rem 2.5rem; border-radius: var(--radius-md);">Upload & Analyze</button>
+                </form>
+
+                <!-- Text Paste Tab -->
+                <form action="{{ url_for('upload') }}" method="POST" id="text-form" class="input-panel"
+                    style="display: none;">
+                    <textarea name="text_content" id="text-input" placeholder="Paste your text here..."
+                        style="width: 100%; min-height: 300px; padding: 1rem; border: 2px solid var(--border); border-radius: var(--radius-md); font-family: inherit; font-size: 0.95rem; resize: vertical; margin-bottom: 1rem;"></textarea>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span id="char-count" style="font-size: 0.85rem; color: var(--text-muted);">0 characters</span>
+                        <button type="submit" class="btn btn-primary"
+                            style="padding: 1rem 2.5rem; border-radius: var(--radius-md);">Analyze Text</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Progress Modal -->
+        <div id="progress-modal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
+            <div
+                style="background: white; padding: 3rem; border-radius: var(--radius-lg); text-align: center; max-width: 400px;">
+                <div class="spinner"
+                    style="width: 60px; height: 60px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; margin: 0 auto 1.5rem; animation: spin 1s linear infinite;">
+                </div>
+                <h3 style="font-weight: 700; margin-bottom: 0.5rem;">Analyzing Document</h3>
+                <p id="progress-status" style="color: var(--text-muted); font-size: 0.9rem;">Initializing analysis...
+                </p>
+            </div>
+        </div>
+
+        <style>
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .tab-btn.active {
+                background: var(--primary) !important;
+                color: white !important;
+                border-color: var(--primary) !important;
+            }
+        </style>
+
+        <script>
+            // Tab switching
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tab = btn.dataset.tab;
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.input-panel').forEach(p => p.style.display = 'none');
+                    btn.classList.add('active');
+                    document.getElementById(tab + '-form').style.display = tab === 'file' ? 'flex' : 'block';
+                });
+            });
+
+            // Character counter
+            const textInput = document.getElementById('text-input');
+            const charCount = document.getElementById('char-count');
+            textInput.addEventListener('input', () => {
+                const count = textInput.value.length;
+                charCount.textContent = `${count.toLocaleString()} characters`;
+            });
+
+            // File name display
+            document.getElementById('file-upload').addEventListener('change', (e) => {
+                const label = document.getElementById('file-label');
+                if (e.target.files.length > 0) {
+                    label.innerHTML = `<span style="font-size: 1.2rem;">✅</span> ${e.target.files[0].name}`;
+                }
+            });
+
+            // Show progress modal on submit
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', (e) => {
+                    const modal = document.getElementById('progress-modal');
+                    modal.style.display = 'flex';
+
+                    // Simulate progress messages
+                    const messages = [
+                        'Initializing analysis...',
+                        'Extracting text content...',
+                        'Detecting AI patterns...',
+                        'Searching for plagiarism...',
+                        'Generating report...'
+                    ];
+                    let i = 0;
+                    const interval = setInterval(() => {
+                        if (i < messages.length) {
+                            document.getElementById('progress-status').textContent = messages[i];
+                            i++;
+                        }
+                    }, 1500);
+                });
+            });
+        </script>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            <span>{% if category == 'success' %}✅{% else %}⚠️{% endif %}</span>
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-end;">
+            <h2 style="font-weight: 800; color: var(--text-main);">My Lab</h2>
+            <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">{{ docs|length }} Documents
+                Total</span>
+        </div>
+
+        <div class="card" style="padding: 0;">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Document</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Similarity</th>
+                            <th>AI Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if not docs %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 5rem;">
+                                <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;">📄</div>
+                                <div style="font-weight: 600;">No documents in your lab yet.</div>
+                                <div style="font-size: 0.85rem;">Upload a file to start the analysis.</div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% for doc in docs %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-weight: 700; color: var(--text-main);">{{ doc.filename }}</span>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted);">#{{ doc.id }}</span>
+                                </div>
+                            </td>
+                            <td style="font-weight: 500;">{{ doc.created_at.strftime('%b %d, %Y') }}</td>
+                            <td>
+                                {% if doc.status == 'Uploaded' %}
+                                <span class="badge badge-pending">Ready to Run</span>
+                                {% else %}
+                                <span class="badge badge-success">Completed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if reports[doc.id] %}
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div
+                                        style="width: 4px; height: 1.5rem; background: {{ 'var(--primary)' if reports[doc.id].plag_score > 20 else '#e2e8f0' }}; border-radius: 2px;">
+                                    </div>
+                                    <strong
+                                        style="font-size: 1.1rem; color: {{ 'var(--primary)' if reports[doc.id].plag_score > 20 else 'var(--text-main)' }};">
+                                        {{ reports[doc.id].plag_score }}%
+                                    </strong>
+                                </div>
+                                {% else %}
+                                <span style="color: var(--text-muted);">--</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if reports[doc.id] %}
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div
+                                        style="width: 4px; height: 1.5rem; background: {{ 'var(--secondary)' if reports[doc.id].ai_score > 50 else '#e2e8f0' }}; border-radius: 2px;">
+                                    </div>
+                                    <strong
+                                        style="font-size: 1.1rem; color: {{ 'var(--secondary)' if reports[doc.id].ai_score > 50 else 'var(--text-main)' }};">
+                                        {{ reports[doc.id].ai_score }}%
+                                    </strong>
+                                </div>
+                                {% else %}
+                                <span style="color: var(--text-muted);">--</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    {% if doc.status == 'Uploaded' %}
+                                    <a href="{{ url_for('run_scan', doc_id=doc.id) }}"
+                                        class="btn btn-primary btn-sm">Run Analysis</a>
+                                    {% else %}
+                                    <a href="{{ url_for('view_report', doc_id=doc.id) }}"
+                                        class="btn btn-outline btn-sm">View Report</a>
+
+                                    <div
+                                        style="display: flex; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); overflow: hidden; background: white;">
+                                        <a href="{{ url_for('download_similarity', report_id=reports[doc.id].id) }}"
+                                            class="btn btn-sm"
+                                            style="border-radius: 0; border-right: 1px solid var(--glass-border); padding: 0.4rem 0.6rem; font-size: 0.75rem;"
+                                            title="Similarity PDF">Sim PDF</a>
+                                        <a href="{{ url_for('download_ai', report_id=reports[doc.id].id) }}"
+                                            class="btn btn-sm"
+                                            style="border-radius: 0; color: var(--secondary); padding: 0.4rem 0.6rem; font-size: 0.75rem;"
+                                            title="AI PDF">AI PDF</a>
+                                    </div>
+                                    {% endif %}
+
+                                    <a href="{{ url_for('delete_doc', doc_id=doc.id) }}" class="btn btn-danger btn-sm"
+                                        style="display: flex; align-items: center; gap: 0.3rem;"
+                                        onclick="return confirm('Delete this record?')">
+                                        <span>🗑️</span>
+                                        <span>Delete</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            PlagiCheck AI utilizes ensemble linguistic patterns and character entropy to detect AI-generated flows.
+        </div>
+    </main>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Update file label when selected
+        document.getElementById('file-upload').addEventListener('change', function (e) {
+            var fileName = e.target.files[0].name;
+            document.getElementById('file-label').innerHTML = '📁 ' + fileName;
+            document.getElementById('file-label').style.borderColor = 'var(--primary)';
+        });
+    </script>
+</body>
+
+</html>

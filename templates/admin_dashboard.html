@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | PlagiCheck AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-brand">
+            <div class="logo-box"
+                style="width: 2rem; height: 2rem; font-size: 1.25rem; border-radius: 0.5rem; margin: 0;">P</div>
+            <span>Admin Center</span>
+        </div>
+        <div class="header-user">
+            <span class="user-tag" style="background: var(--primary-glow); color: var(--primary);">System Admin</span>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline btn-sm">Sign Out</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1 style="font-weight: 800; margin-bottom: 2rem; font-size: 2rem; letter-spacing: -0.02em;">Platform Overview
+        </h1>
+
+        <div class="stats-grid">
+            <div class="card stat-card">
+                <div class="stat-value">{{ users|length }}</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-value"
+                    style="background: linear-gradient(135deg, var(--secondary), #818cf8); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                    {{ docs|length }}</div>
+                <div class="stat-label">System Documents</div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-value" style="color: #059669;">{{ reports|length if reports else 0 }}</div>
+                <div class="stat-label">Reports Active</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-weight: 800;">Recent Lab Activity</h2>
+            <div class="user-tag" style="font-size: 0.7rem; opacity: 0.8;">Live Feed</div>
+        </div>
+
+        <div class="card" style="padding: 0;">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Document Info</th>
+                            <th>Owner</th>
+                            <th>Metrics</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if not docs %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 5rem;">No
+                                activity recorded in the system yet.</td>
+                        </tr>
+                        {% endif %}
+                        {% for doc in docs %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-weight: 700; color: var(--text-main);">{{ doc.filename }}</span>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted);">ID: #{{ doc.id }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600;">@{{ doc.user_id }}</div>
+                            </td>
+                            <td>
+                                {% if reports[doc.id] %}
+                                <div style="font-size: 0.85rem;">
+                                    <span style="color: var(--primary); font-weight: 700;">Sim: {{
+                                        reports[doc.id].plag_score }}%</span>
+                                    <span style="margin: 0 0.5rem; color: #e2e8f0;">|</span>
+                                    <span style="color: var(--secondary); font-weight: 700;">AI: {{
+                                        reports[doc.id].ai_score }}%</span>
+                                </div>
+                                {% else %}
+                                <span class="badge badge-pending">Not Scanned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    {% if reports[doc.id] %}
+                                    <a href="{{ url_for('view_report', doc_id=doc.id) }}"
+                                        class="btn btn-outline btn-sm">Report</a>
+                                    {% endif %}
+                                    <a href="{{ url_for('delete_doc', doc_id=doc.id) }}" class="btn btn-danger btn-sm"
+                                        style="display: flex; align-items: center; gap: 0.3rem;"
+                                        onclick="return confirm('Force delete this document?')">
+                                        <span>🗑️</span>
+                                        <span>Delete</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            All administrative actions are monitored for system integrity. Active session for {{ current_user.username
+            }}.
+        </div>
+    </main>
+</body>
+
+</html>

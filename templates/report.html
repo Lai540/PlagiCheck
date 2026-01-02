@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Report | PlagiCheck AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-brand">
+            <a href="{{ url_for('user_dashboard') }}"
+                style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;">
+                <div class="logo-box"
+                    style="width: 1.8rem; height: 1.8rem; font-size: 1rem; border-radius: 0.4rem; margin: 0;">P</div>
+                <span>Analysis Lab</span>
+            </a>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <a href="{{ url_for('download_similarity', report_id=report.id) }}" class="btn btn-outline btn-sm">Download
+                Similarity PDF</a>
+            <a href="{{ url_for('download_ai', report_id=report.id) }}" class="btn btn-outline btn-sm"
+                style="border-color: var(--secondary); color: var(--secondary);">Download AI Report</a>
+            <a href="{{ url_for('user_dashboard') }}" class="btn btn-primary btn-sm">Close Lab</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="report-viewer">
+            <!-- Reader View -->
+            <div class="report-content" id="reader">
+                {% for seg in combined_segments %}
+                <mark class="{% if seg.is_plag %}hl-plag{% endif %} {% if seg.is_ai %}hl-ai{% endif %}"
+                    data-plag="{{ seg.is_plag }}" data-ai="{{ seg.is_ai }}"
+                    data-sim="{{ seg.similarity if seg.is_plag else '0' }}"
+                    data-prob="{{ seg.prob if seg.is_ai else '0' }}" data-url="{{ seg.url if seg.url else '' }}"
+                    onclick="showDetail(this)">{{ seg.text }}</mark>
+                {% endfor %}
+            </div>
+
+            <!-- Analysis Sidebar -->
+            <div class="report-sidebar">
+                <!-- Summary Card -->
+                <div class="card" style="padding: 1.5rem;">
+                    <h3
+                        style="font-size: 0.9rem; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted);">
+                        Integrity Scores</h3>
+
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div>
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 700;">Similarity Index</span>
+                                <span style="font-weight: 800; font-size: 1.5rem; color: var(--primary);">{{
+                                    report.plag_score }}%</span>
+                            </div>
+                            <div style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                                <div style="width: {{ report.plag_score }}%; height: 100%; background: var(--primary);">
+                                </div>
+                            </div>
+                            <div
+                                style="margin-top: 0.8rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="color: var(--text-muted);">Status:</span>
+                                <span class="badge" style="
+                                    background: {% if interpretation == 'Very High' %}#fee2e2; color: #991b1b;
+                                    {% elif interpretation == 'High' %}#ffedd5; color: #9a3412;
+                                    {% elif interpretation == 'Moderate' %}#fef9c3; color: #854d0e;
+                                    {% elif interpretation == 'Low' %}#f0fdf4; color: #166534;
+                                    {% else %}#f1f5f9; color: #475569;{% endif %}
+                                    font-weight: 700; font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 1rem;
+                                ">{{ interpretation }} Similarity</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 700;">AI Probability</span>
+                                <span style="font-weight: 800; font-size: 1.5rem; color: var(--secondary);">{{
+                                    report.ai_score }}%</span>
+                            </div>
+                            <div style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                                <div style="width: {{ report.ai_score }}%; height: 100%; background: var(--secondary);">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detail Panel -->
+                <div id="detail-card" class="card"
+                    style="flex-grow: 1; border: 2px dashed var(--glass-border); display: flex; align-items: center; justify-content: center; text-align: center; background: rgba(248, 250, 252, 0.5);">
+                    <div>
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">🔍</div>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; padding: 0 2rem;">Select any highlighted
+                            text to view detailed source information and AI confidence metrics.</p>
+                    </div>
+                </div>
+
+                <!-- Sources Card -->
+                <div class="card" style="max-height: 300px; overflow-y: auto;">
+                    <h4
+                        style="font-size: 0.75rem; margin-bottom: 1rem; text-transform: uppercase; color: var(--text-muted);">
+                        Top Matches</h4>
+                    {% if matches %}
+                    {% for match in matches %}
+                    <div
+                        style="margin-bottom: 1rem; padding: 0.75rem; border-radius: var(--radius-sm); background: white; border: 1px solid var(--bg-light);">
+                        <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.2rem; word-break: break-all;">
+                            {{ match.title }}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.75rem; font-weight: 600; color: var(--primary);">{{ match.score
+                                }}% Match</span>
+                            {% if match.url %}
+                            <a href="{{ match.url }}" target="_blank"
+                                style="font-size: 0.7rem; color: var(--secondary); font-weight: 700;">Visit Source ↗</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p style="font-size: 0.8rem; color: var(--text-muted);">No external sources matched.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function showDetail(el) {
+            const isPlag = el.dataset.plag === 'True';
+            const isAI = el.dataset.ai === 'True';
+            const sim = el.dataset.sim;
+            const prob = el.dataset.prob;
+            const url = el.dataset.url;
+
+            const detailCard = document.getElementById('detail-card');
+            detailCard.style.border = '1px solid var(--glass-border)';
+            detailCard.style.background = 'white';
+            detailCard.style.alignItems = 'flex-start';
+            detailCard.style.justifyContent = 'flex-start';
+            detailCard.style.textAlign = 'left';
+            detailCard.style.padding = '1.5rem';
+
+            let html = `<h4 style="margin-bottom: 1rem; font-weight: 800; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem;">Segment Analysis</h4>`;
+
+            if (isPlag) {
+                html += `<div style="margin-bottom: 1.5rem; padding: 1rem; border-radius: var(--radius-sm); border-left: 4px solid var(--primary); background: #fff1f2;">
+                            <div style="font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 0.3rem;">Exact Match Found</div>
+                            <div style="font-weight: 700; font-size: 1.2rem; color: var(--primary);">${sim}% Similarity</div>
+                            <p style="font-size: 0.8rem; color: #475569; margin: 0.5rem 0;">This segment matches exactly with identified document records or online sources.</p>
+                            ${url ? `<a href="${url}" target="_blank" style="display: block; font-size: 0.8rem; color: var(--secondary); font-weight: 600; word-break: break-all;">Source: ${url} ↗</a>` : ''}
+                         </div>`;
+            }
+
+            if (isAI) {
+                html += `<div>
+                            <div style="font-size: 0.75rem; font-weight: 800; color: var(--secondary); text-transform: uppercase;">AI Generated Flow</div>
+                            <div style="font-weight: 700; font-size: 1.1rem; margin-top: 0.2rem;">${prob}% Probability</div>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">Linguistic markers and entropy levels suggest non-human authorship.</p>
+                         </div>`;
+            }
+
+            if (!isPlag && !isAI) {
+                html += `<div style="text-align: center; width: 100%; margin-top: 2rem; color: var(--text-muted);">Human Author (Neutral Variance)</div>`;
+            }
+
+            detailCard.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>
