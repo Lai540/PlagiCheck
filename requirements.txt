@@ -9,3 +9,5 @@ python-docx
 python-pptx
 fpdf2
 python-dateutil
+gunicorn
+
